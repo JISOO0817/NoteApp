@@ -3,6 +3,7 @@ package com.example.noteapp.activity;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.Bundle;
@@ -160,10 +161,62 @@ public class EditActivity extends AppCompatActivity {
 
                 return true;
 
+
+            case R.id.delete:
+
+                AlertDialog.Builder alertDialog = new AlertDialog.Builder(this);
+                alertDialog.setTitle("확인!");
+                alertDialog.setMessage("삭제하시겠어요?");
+                alertDialog.setPositiveButton("네",((dialog, which) -> {
+                    dialog.dismiss();
+                    deleteNote(id);
+                }));
+                alertDialog.setNegativeButton("취소",(((dialog, which) -> dialog.dismiss())));
+
+                alertDialog.show();
+
+                return true;
+
+
             default:
                 return super.onOptionsItemSelected(item);
         }
 
+    }
+
+    private void deleteNote(int id) {
+
+        progressDialog.show();
+        apiInterface = ApiClient.getApiClient().create(ApiInterface.class);
+        Call<Note> call = apiInterface.deleteNote(id);
+        call.enqueue(new Callback<Note>() {
+            @Override
+            public void onResponse(@NonNull Call<Note> call, @NonNull Response<Note> response) {
+
+                progressDialog.dismiss();
+
+                if(response.isSuccessful() && response.body() != null){
+
+                    Boolean success = response.body().getSuccess();
+                    if(success){
+                        Toast.makeText(EditActivity.this,
+                                response.body().getMessage(),
+                                Toast.LENGTH_SHORT).show();
+                        finish(); // 메인 액티비티로 돌아감
+                    }else{
+                        Toast.makeText(EditActivity.this, response.body().getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                }else{
+                    Toast.makeText(EditActivity.this, "실패", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<Note> call,@NonNull Throwable t) {
+                progressDialog.dismiss();
+                Toast.makeText(EditActivity.this, t.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void saveNote(final String title, final String note, final int color) {
